@@ -15,7 +15,7 @@
 <section class="manifesto" id="about"><h2>Не просто цветы.<br><em style="color:var(--accent)">Настроение дома.</em></h2><div><p>Мы выбираем цветы за характер, линию и фактуру. Собираем охапки и композиции, которые становятся частью пространства — на столе, у окна или в любимой вазе.</p><p>Доступность цветов меняется. Напишите нам, чтобы уточнить наличие и подобрать сочетание под ваш интерьер.</p><a class="btn" href="https://t.me/flowers_spartak_msk" target="_blank" rel="noopener">Обсудить заказ ↗</a></div></section>
 </main><section class="manifesto" id="delivery" style="margin-top:0"><h2>Доставка<br><em style="color:var(--accent)">до двери.</em></h2><div><p>Доставка по району — бесплатно. Адрес, время и возможность самовывоза согласуем при оформлении заказа.</p><a class="btn primary" href="https://t.me/flowers_spartak_msk" target="_blank" rel="noopener">Уточнить доставку ↗</a></div></section><footer class="footer" id="contacts"><span class="brand">FLOWERS SPARTAK</span><span>МОСКВА · ДОСТАВКА ПО СОГЛАСОВАНИЮ</span><span><a href="https://t.me/flowers_spartak_msk" target="_blank" rel="noopener">Заказ: @flowers_spartak_msk</a><br><a href="https://t.me/spartak_flowers" target="_blank" rel="noopener">Telegram-канал</a> · <a href="https://instagram.com/flowers_spartak" target="_blank" rel="noopener">Instagram</a></span><button class="admin-link" id="openAdmin">Вход для владельца</button></footer></div>
 <div class="modal" id="modal"><div class="admin"><div style="display:flex;justify-content:space-between;gap:12px;align-items:start"><div><div class="eyebrow">FLOWERS SPARTAK</div><h2>Управление каталогом</h2></div><button class="order" id="closeAdmin">Закрыть ✕</button></div><div class="notice"><b>Важно:</b> эта первая версия хранит изменения в памяти браузера на этом устройстве. Чтобы редактирование было доступно с любого телефона и покупатели всегда видели обновления, перед публикацией подключим общую онлайн-базу и защищённый вход.</div><div id="login"><div class="field"><label>Пароль администратора</label><input type="password" id="adminPass" placeholder="Задайте пароль для этого браузера"></div><p class="tiny">При первом входе придумайте пароль. Он сохранится только в этом браузере.</p><button class="btn primary" id="loginBtn">Открыть админку</button></div><div id="dashboard" class="hidden"><form id="productForm"><input type="hidden" id="editId"><div class="formgrid"><div class="field"><label>Название</label><input id="pName" required placeholder="Например, Стрелиция"></div><div class="field"><label>Цена, ₽</label><input id="pPrice" type="number" min="0" required placeholder="1900"></div><div class="field"><label>Категория</label><select id="pCategory"><option>Охапка</option><option>Сеты</option><option>Композиция</option><option>Прочее</option></select></div><div class="field"><label>Фото — URL изображения</label><input id="pImage" placeholder="https://..."></div><div class="field full"><label>Описание</label><textarea id="pDesc" placeholder="Коротко о цветах"></textarea></div><div class="field"><label>Наличие</label><select id="pStock"><option value="true">В наличии</option><option value="false">Нет в наличии</option></select></div></div><div class="admin-actions"><button class="btn primary" type="submit">Сохранить товар</button><button class="btn" type="button" id="resetForm">Очистить форму</button><button class="btn" type="button" id="exportData">Экспорт каталога</button><label class="btn" for="importFile">Импорт каталога</label><input id="importFile" type="file" accept="application/json" class="hidden"></div></form><div class="admin-list" id="adminList"></div><button class="btn" id="logoutBtn" style="margin-top:18px">Выйти из админки</button></div></div></div>
-<script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
 const defaults=[
 {id:'d1',name:'Охапка стрелиции',price:1950,category:'Охапка',desc:'Графичные тропические формы — выразительный акцент для интерьера.',image:'https://images.unsplash.com/photo-1591886960571-74d43a9e4166?auto=format&fit=crop&w=900&q=85',stock:true},
 {id:'d2',name:'Оранжевая охапка',price:2400,category:'Охапка',desc:'Тёплая палитра и выразительные линии для дома.',image:'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=900&q=85',stock:true},
@@ -24,17 +24,137 @@ const defaults=[
 {id:'d5',name:'Цветочная охапка',price:1800,category:'Охапка',desc:'Лаконичный жест — много цветов, минимум лишнего.',image:'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&w=900&q=85',stock:true},
 {id:'d6',name:'Ваза для интерьера',price:990,category:'Прочее',desc:'Спокойная форма, которая подчёркивает цветы.',image:'https://images.unsplash.com/photo-1578500494198-246f612d3b3d?auto=format&fit=crop&w=900&q=85',stock:true}
 ];
-const key='flowersSpartakProductsV1';let products;try{products=JSON.parse(localStorage.getItem(key))||defaults}catch(e){products=defaults}let active='Все';
-const cats=['Все','Охапка','Сеты','Композиция','Прочее'];const money=n=>new Intl.NumberFormat('ru-RU').format(Number(n)||0)+' ₽';
-function save(){localStorage.setItem(key,JSON.stringify(products));render();renderAdmin()}
-function renderFilters(){document.getElementById('filters').innerHTML=cats.map(c=>`<button class="filter ${c===active?'active':''}" data-cat="${c}">${c}</button>`).join('');document.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{active=b.dataset.cat;renderFilters();render()})}
-function render(){let list=products.filter(p=>(active==='Все'||p.category===active));document.getElementById('count').textContent=`${list.length} ${list.length===1?'позиция':'позиций'}`;document.getElementById('products').innerHTML=list.length?list.map(p=>`<article class="product"><div class="product-img"><img loading="lazy" src="${esc(p.image||'')}" alt="${esc(p.name)}" onerror="this.style.display='none'"><span class="tag">${p.stock?'В наличии':'Под заказ'}</span></div><div class="product-info"><h3 class="product-title">${esc(p.name)}</h3><div class="product-desc">${esc(p.desc||'')}</div><div class="product-bottom"><span class="price">${money(p.price)}</span><a class="order" href="https://t.me/flowers_spartak_msk?text=${encodeURIComponent('Здравствуйте! Хочу заказать: '+p.name+' — '+money(p.price))}" target="_blank" rel="noopener">${p.stock?'Заказать ↗':'Уточнить ↗'}</a></div></div></article>`).join(''):'<div class="empty">В этой категории пока нет товаров. Напишите нам — подберём цветы для вас.</div>'}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-renderFilters();render();
-const modal=document.getElementById('modal');document.getElementById('openAdmin').onclick=()=>{modal.classList.add('open')};document.getElementById('closeAdmin').onclick=()=>modal.classList.remove('open');modal.onclick=e=>{if(e.target===modal)modal.classList.remove('open')};
-document.getElementById('loginBtn').onclick=()=>{let pass=document.getElementById('adminPass').value;if(!pass)return alert('Введите пароль.');let stored=localStorage.getItem('flowersSpartakAdminPass');if(!stored){localStorage.setItem('flowersSpartakAdminPass',pass);stored=pass}if(pass!==stored)return alert('Неверный пароль.');document.getElementById('login').classList.add('hidden');document.getElementById('dashboard').classList.remove('hidden');renderAdmin()};
-document.getElementById('logoutBtn').onclick=()=>{document.getElementById('dashboard').classList.add('hidden');document.getElementById('login').classList.remove('hidden');document.getElementById('adminPass').value=''};
-function renderAdmin(){let el=document.getElementById('adminList');if(!el)return;el.innerHTML='<h3 style="font:24px Georgia,serif">Товары каталога</h3>'+products.map(p=>`<div class="admin-row"><span><b>${esc(p.name)}</b><br><span class="tiny">${money(p.price)} · ${esc(p.category)} · ${p.stock?'в наличии':'нет в наличии'}</span></span><span style="display:flex;gap:6px"><button class="order" data-edit="${p.id}">Изменить</button><button class="order" data-delete="${p.id}">Удалить</button></span></div>`).join('');el.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{let p=products.find(x=>x.id===b.dataset.edit);document.getElementById('editId').value=p.id;document.getElementById('pName').value=p.name;document.getElementById('pPrice').value=p.price;document.getElementById('pCategory').value=p.category;document.getElementById('pImage').value=p.image||'';document.getElementById('pDesc').value=p.desc||'';document.getElementById('pStock').value=String(p.stock);document.getElementById('pName').focus()});el.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(confirm('Удалить товар?')){products=products.filter(p=>p.id!==b.dataset.delete);save()}})}
-document.getElementById('productForm').onsubmit=e=>{e.preventDefault();let id=document.getElementById('editId').value||('p'+Date.now());let p={id,name:document.getElementById('pName').value.trim(),price:Number(document.getElementById('pPrice').value),category:document.getElementById('pCategory').value,image:document.getElementById('pImage').value.trim(),desc:document.getElementById('pDesc').value.trim(),stock:document.getElementById('pStock').value==='true'};let i=products.findIndex(x=>x.id===id);if(i>=0)products[i]=p;else products.unshift(p);save();e.target.reset();document.getElementById('editId').value='';alert('Сохранено в этом браузере. Для общего онлайн-каталога нужно подключить базу данных.')};document.getElementById('resetForm').onclick=()=>{document.getElementById('productForm').reset();document.getElementById('editId').value=''};
-document.getElementById('exportData').onclick=()=>{let blob=new Blob([JSON.stringify(products,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='flowers-spartak-catalog.json';a.click();URL.revokeObjectURL(a.href)};document.getElementById('importFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let arr=JSON.parse(await f.text());if(!Array.isArray(arr))throw Error();products=arr;save();alert('Каталог импортирован')}catch(err){alert('Не удалось прочитать файл каталога')}e.target.value=''};
+function renderAdmin() {
+  const el = document.getElementById('adminList');
+  if (!el) return;
+
+  el.innerHTML =
+    '<h3 style="font:24px Georgia,serif">Товары каталога</h3>' +
+    products.map(p => `
+      <div class="admin-row">
+        <span>
+          <b>${esc(p.name)}</b><br>
+          <span class="tiny">${money(p.price)} · ${esc(p.category)}
+          · ${p.stock ? 'в наличии' : 'нет в наличии'}</span>
+        </span>
+        <span style="display:flex;gap:6px">
+          <button class="order" data-edit="${esc(p.id)}">Изменить</button>
+          <button class="order" data-delete="${esc(p.id)}">Удалить</button>
+        </span>
+      </div>
+    `).join('');
+
+  el.querySelectorAll('[data-edit]').forEach(b => {
+    b.onclick = () => {
+      const p = products.find(x => String(x.id) === b.dataset.edit);
+      if (!p) return;
+
+      document.getElementById('editId').value = p.id;
+      document.getElementById('pName').value = p.name;
+      document.getElementById('pPrice').value = p.price;
+      document.getElementById('pCategory').value = p.category;
+      document.getElementById('pImage').value = p.image || '';
+      document.getElementById('pDesc').value = p.desc || '';
+      document.getElementById('pStock').value = String(p.stock);
+      document.getElementById('pName').focus();
+    };
+  });
+
+  el.querySelectorAll('[data-delete]').forEach(b => {
+    b.onclick = async () => {
+      if (!confirm('Удалить товар?')) return;
+
+      const { error } = await db
+        .from('products')
+        .delete()
+        .eq('id', b.dataset.delete);
+
+      if (error) return alert('Ошибка удаления: ' + error.message);
+      await loadProducts();
+    };
+  });
+}
+
+document.getElementById('productForm').onsubmit = async e => {
+  e.preventDefault();
+
+  const editId = document.getElementById('editId').value;
+  const p = {
+    name: document.getElementById('pName').value.trim(),
+    price: Number(document.getElementById('pPrice').value),
+    category: document.getElementById('pCategory').value,
+    image: document.getElementById('pImage').value.trim(),
+    desc: document.getElementById('pDesc').value.trim(),
+    stock: document.getElementById('pStock').value === 'true'
+  };
+
+  if (!p.name) return alert('Введите название товара.');
+
+  let result;
+
+  if (editId) {
+    result = await db.from('products')
+      .update(toDB(p))
+      .eq('id', editId);
+  } else {
+    result = await db.from('products').insert(toDB(p));
+  }
+
+  if (result.error) {
+    return alert('Ошибка сохранения: ' + result.error.message);
+  }
+
+  e.target.reset();
+  document.getElementById('editId').value = '';
+  await loadProducts();
+  alert('Товар сохранён онлайн.');
+};
+
+document.getElementById('resetForm').onclick = () => {
+  document.getElementById('productForm').reset();
+  document.getElementById('editId').value = '';
+};
+
+document.getElementById('exportData').onclick = () => {
+  const blob = new Blob([JSON.stringify(products, null, 2)], {
+    type: 'application/json'
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'flowers-spartak-catalog.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+document.getElementById('importFile').onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+
+  try {
+    const arr = JSON.parse(await f.text());
+    if (!Array.isArray(arr)) throw Error('Неверный формат файла');
+
+    for (const item of arr) {
+      const { error } = await db.from('products').insert(toDB({
+        name: item.name,
+        price: Number(item.price) || 0,
+        category: item.category || 'Охапка',
+        image: item.image || '',
+        desc: item.desc || '',
+        stock: item.stock !== false
+      }));
+
+      if (error) throw error;
+    }
+
+    await loadProducts();
+    alert('Каталог импортирован.');
+  } catch (err) {
+    alert('Ошибка импорта: ' + err.message);
+  }
+
+  e.target.value = '';
+};
+
+loadProducts();
 </script></body></html>
